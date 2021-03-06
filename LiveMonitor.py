@@ -47,11 +47,20 @@ class LiveMonitor():
 
     def run(self):
         for room in self.rooms:
-            if get_room_info(room.room_display_id)['room_info']['live_status'] == 1:
+            rinfo = get_room_info(room.room_display_id)
+            if rinfo['room_info']['live_status'] == 1:
                 VDB.set_db(room.room_display_id)
+                room.start_time = rinfo['room_info']['live_start_time']
         connect_all_LiveDanmaku(*self.rooms)
 
 
 if __name__ == "__main__":
     monitor = LiveMonitor(LISTEN_ROOMS)
     monitor.run()
+#     while True:
+#         print('monitor running...')
+#         try:
+#             monitor.run()
+#         except Exception as e:
+#             print(e)
+#         print('error occurred. now reconnecting...')

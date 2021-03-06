@@ -121,7 +121,7 @@ class ASFigure():
 
         gifts = self.data.get('gift', pd.DataFrame(columns=['coin', 'type', 'time']))
         superchats = self.data.get('superchat', pd.DataFrame(columns=['uid', 'price', 'time']))
-        guards = self.data.get('guard', pd.DataFrame(columns=['uid', 'time']))
+        guards = self.data.get('guard', pd.DataFrame(columns=['coin', 'time']))
         data = pd.concat([
             gifts[gifts['type'] == 'gold'][['time','coin']],
             superchats[['time','price']].rename(columns=dict(price='coin')),
@@ -374,19 +374,31 @@ class ASFigure():
         """生成描述文件"""
         fn = self.__gen_filename('', ext='')
         with open(fn, 'w') as f:
-            f.write(str(self.__start_time))
-            f.write('\n')
-            f.write(str(self.__end_time))
+            desc = '\n'.join([str(self.__start_time), str(self.__end_time), self.title, str(self.rid)])
+            f.write(desc)
 
     def statistic(self):
         ui = self.user_info
-        dnum = ui['num'].sum()
-        dpnum = ui[ui['num'] != 0]['num'].count()
-        dmean = ui[ui['num'] != 0]['num'].mean()
-        gnum = ui['gold'].sum()
-        gpnum = ui[ui['gold'] != 0]['gold'].count()
-        gmean = ui[ui['gold'] != 0]['gold'].mean()
-        print(dnum, dmean, gnum, gmean)
+        data = {}
+        dur = self.__end_time - self.__start_time
+        desc = """
+        直播时长：{duration}
+        互动人数：{pnum} / {dpnum} / {gpnum}
+        弹幕总量：{dnum}
+        人均弹幕：{dmean} / {dmean_all}
+        金瓜子总量：{gnum}
+        人均金瓜子：{gmean} / {gmean_all}"""
+        data['dnum'] = ui['num'].sum()
+        data['dpnum'] = ui[ui['num'] != 0]['num'].count()
+        data['dmean'] = ui[ui['num'] != 0]['num'].mean()
+        data['gnum'] = ui['gold'].sum()
+        data['gpnum'] = ui[ui['gold'] != 0]['gold'].count()
+        data['gmean'] = ui[ui['gold'] != 0]['gold'].mean()
+        data['pnum'] = ui['num'].count()
+        data['dmean_all'] = ui['num'].mean()
+        data['gmean_all'] = ui['gold'].mean()
+        data['duration'] = "{:02}:{:02}:{:02}".format(*[dur//3600, dur%3600//60, dur%3600%60])
+        print(desc.format(**data))
         print(self.__start_time, self.__end_time)
     
     def paint(self):
