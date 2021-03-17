@@ -24,7 +24,7 @@ class ASFigure():
         self.title = room.title
         self.data = {}
 
-        db = VDB.get_db(self.rid)
+        # db = VDB.get_db(self.rid)
         
         def find_args(flag):
             alpha = 1000 if flag else 1
@@ -33,9 +33,9 @@ class ASFigure():
                 {'_id': False}
             ]
 
-        for cname in db.list_collection_names():
+        for cname in VDB.get_db(self.rid).list_collection_names():
             args = find_args(cname == 'danmu')
-            d = db[cname].find(*args)
+            d = VDB.find(self.rid, cname, *args)
             if d.count():
                 self.data[cname] = pd.DataFrame(d)
 
@@ -70,7 +70,7 @@ class ASFigure():
         title = '人气值折线图'
         filename = self.__gen_filename(title)
 
-        df = self.data['view']
+        df = self.data['view'].sort_values('time')
         df.loc[:,'time'] = df['time'].map(lambda x: datetime.fromtimestamp(x))
 
         fig = px.line(df, x='time', y='value', labels={'time': '时间', 'value': '人气值'}, title=title)
@@ -373,38 +373,41 @@ class ASFigure():
     def describe(self):
         """生成描述文件"""
         fn = self.__gen_filename('', ext='')
+        desc = '\n'.join([str(self.__start_time), str(self.__end_time), self.title, str(self.rid), self.statistic()])
+        print(desc)
         with open(fn, 'w') as f:
-            desc = '\n'.join([str(self.__start_time), str(self.__end_time), self.title, str(self.rid)])
             f.write(desc)
 
     def statistic(self):
         ui = self.user_info
-        data = {}
-        dur = self.__end_time - self.__start_time
-        desc = """
+        desc = """直播数据统计：
+        开始时间：{stime} 结束时间：{etime}
         直播时长：{duration}
         互动人数：{pnum} / {dpnum} / {gpnum}
         弹幕总量：{dnum}
         人均弹幕：{dmean} / {dmean_all}
         金瓜子总量：{gnum}
         人均金瓜子：{gmean} / {gmean_all}"""
-        data['dnum'] = ui['num'].sum()
-        data['dpnum'] = ui[ui['num'] != 0]['num'].count()
-        data['dmean'] = ui[ui['num'] != 0]['num'].mean()
-        data['gnum'] = ui['gold'].sum()
-        data['gpnum'] = ui[ui['gold'] != 0]['gold'].count()
-        data['gmean'] = ui[ui['gold'] != 0]['gold'].mean()
-        data['pnum'] = ui['num'].count()
-        data['dmean_all'] = ui['num'].mean()
-        data['gmean_all'] = ui['gold'].mean()
-        data['duration'] = "{:02}:{:02}:{:02}".format(*[dur//3600, dur%3600//60, dur%3600%60])
-        print(desc.format(**data))
-        print(self.__start_time, self.__end_time)
+        dur = self.__end_time - self.__start_time
+        data = dict(
+            stime=datetime.fromtimestamp(self.__start_time).strftime('%Y-%m-%d %H:%M:%S'),
+            etime=datetime.fromtimestamp(self.__end_time).strftime('%Y-%m-%d %H:%M:%S'),
+            dnum=ui['num'].sum(),
+            dpnum= ui[ui['num'] != 0]['num'].count(),
+            dmean= ui[ui['num'] != 0]['num'].mean(),
+            gnum = ui['gold'].sum(),
+            gpnum = ui[ui['gold'] != 0]['gold'].count(),
+            gmean = ui[ui['gold'] != 0]['gold'].mean(),
+            pnum = ui['num'].count(),
+            dmean_all=ui['num'].mean(),
+            gmean_all=ui['gold'].mean(),
+            duration="{:02}:{:02}:{:02}".format(*[dur//3600, dur%3600//60, dur%3600%60])
+        )
+        return desc.format(**data)
     
     def paint(self):
         """绘制一场直播的所有统计图表"""
         self.describe()
-        self.statistic()
         self.word_cloud()
         self.popular_x_time_line()
         self.danmu_mean_x_time_line()

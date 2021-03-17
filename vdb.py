@@ -35,3 +35,8 @@ class VDB():
         collection = VDB.get_db(rid)[msg[0]]
         data = msg[1]
         collection.update(cond, data)
+
+    @classmethod
+    def find(self, rid, cname, *args):
+        print(rid, cname, *args)
+        return VDB.get_db(rid)[cname].find(*args)

@@ -4,7 +4,6 @@ from live import WsMessage
 from ASDanmuMaster import LiveDanmu
 from vdb import VDB
 from settings import DEFAULT_LISTEN_EVENTS, LISTEN_ROOMS
-from figure import ASFigure
 import asyncio
 
 
@@ -26,21 +25,15 @@ class LiveMonitor():
     def start_record(self, room):
         """直播开始事件处理程序"""
         async def register(msg):
-            room.start_time = int(datetime.now().timestamp())
-            asyncio.create_task(WsMessage(msg).save_to_db(room.room_display_id))
+            if not room.live_flag:
+                room.live_on()
+                asyncio.create_task(WsMessage(msg).save_to_db(room.room_display_id))
         return register
 
     def stop_record(self, room):
         """直播结束事件处理程序"""
         def close(msg):
-            room_info = get_room_info(room.room_display_id)
-            room.title = room_info['room_info']['title']
-            # room.start_time = room_info['room_info']['live_start_time']
-            room.end_time = int(datetime.now().timestamp())
-            try:
-                ASFigure(room).paint()
-            except Exception as e:
-                print(e)
+            room.live_off()
             WsMessage(msg)
             room.reset_time()            
         return close
@@ -49,7 +42,8 @@ class LiveMonitor():
         for room in self.rooms:
             rinfo = get_room_info(room.room_display_id)
             if rinfo['room_info']['live_status'] == 1:
-                VDB.set_db(room.room_display_id)
+                # VDB.set_db(room.room_display_id)
+                room.live_on()
                 room.start_time = rinfo['room_info']['live_start_time']
         connect_all_LiveDanmaku(*self.rooms)
 

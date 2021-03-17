@@ -122,7 +122,7 @@ class WsMessage():
         print('_process_live...')
         print(msg)
         data = msg['data']
-        VDB.set_db(msg[RID])
+        # VDB.set_db(msg[RID])
         ts = int(datetime.now().timestamp())
         data.update({
             'start_time': ts,
