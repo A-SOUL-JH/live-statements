@@ -1,7 +1,9 @@
 from pymongo import MongoClient
-
+# from motor.motor_asyncio import AsyncIOMotorClient
+import asyncio
 
 class VDB():
+    # client = AsyncIOMotorClient()
     client = MongoClient()
     db = client['free']
     living_dbs = {}
@@ -24,19 +26,22 @@ class VDB():
     def get_db(cls, rid):
         return VDB.living_dbs.get(rid, VDB.db)
 
-    async def insert(self, rid, msg):
-        collection = VDB.get_db(rid)[msg[0]]
-        data = msg[1]
+    async def insert(self, ws_msg):
+        if not ws_msg:
+            return
+        cname, data, *cond = ws_msg.data
+        collection = VDB.get_db(ws_msg.rid)[cname]
         if collection.database.name == 'free':
-            data.update({'roomid': rid})
+            data.update({'roomid': ws_msg.rid})
         collection.insert_one(data)
 
-    async def update(self, rid, msg, cond):
-        collection = VDB.get_db(rid)[msg[0]]
-        data = msg[1]
-        collection.update(cond, data)
+    def update(self, ws_msg):
+        cname, data, *cond = ws_msg.data
+        print(cond)
+        collection = VDB.get_db(ws_msg.rid)[cname]
+        res = collection.update(cond[0] if cond else dict(), {'$set': data})
+        print('[update]', res)
 
     @classmethod
     def find(self, rid, cname, *args):
-        print(rid, cname, *args)
         return VDB.get_db(rid)[cname].find(*args)

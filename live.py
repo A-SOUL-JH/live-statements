@@ -1,6 +1,7 @@
 from datetime import datetime
 from collections import namedtuple
 from vdb import VDB
+from utils import get_live_start_time
 
 Message = namedtuple('Message', [
     'DANMU_MSG',
@@ -20,6 +21,7 @@ RID = 'room_display_id'
 class WsMessage():
     def __init__(self, msg):
         self.msg_type = msg.get('type', None)
+        self.rid = msg.get(RID, None)
         try:
             self.data = getattr(self, '_process_'+self.msg_type.lower())(msg)
         except Exception as e:
@@ -121,25 +123,17 @@ class WsMessage():
     def _process_live(self, msg):
         print('_process_live...')
         print(msg)
-        data = msg['data']
-        # VDB.set_db(msg[RID])
-        ts = int(datetime.now().timestamp())
-        data.update({
-            'start_time': ts,
-            '_id': ts,
-            'finished': False
-        })
-        return ['live_info', data]
+        ts = get_live_start_time(msg)
+        msg['data'].update(dict(finished=False, start_time=ts, _id=ts))
+        return ['live_info', msg['data']]
 
     def _process_preparing(self, msg):
         print('_process_preparing...')
         print(msg)
         data = msg['data']
-        rid = msg[RID]
-        VDB.get_db(rid)['live_info'].find_one_and_update({'finished': False, 'roomid': rid, '_id': {'$type': 16}}
-                        , {'$set':{'finished': True, 'end_time': int(datetime.now().timestamp()),}}, sort=[('_id', -1)])
-        VDB.remove_db(rid)
-        return
+        #VDB.get_db(rid)['live_info'].find_one_and_update({'finished': False, 'roomid': self.rid, '_id': {'$type': 16}}
+        #                , {'$set':{'finished': True, 'end_time': int(datetime.now().timestamp()),}}, sort=[('_id', -1)])
+        return ['live_info', {'finished': True, 'end_time': int(datetime.now().timestamp()),}, {'finished': False, '_id': msg['_id']}]
 
     def get_message_type(self):
         return self.msg_type
