@@ -50,28 +50,22 @@ class LiveDanmu(LiveDanmaku):
     async def start_record(self, msg):
         """直播开始事件处理程序"""
         if not self.live_flag:
-            await self.live_on(msg)
-
+            self.live_flag = True
+            VDB.add_db(self.room_display_id)
+            self.start_time = get_live_start_time(msg)
+            await VDB().insert(WsMessage(msg))
+    
     async def stop_record(self, msg):
         """直播结束事件处理程序"""
-        self.live_off(msg)
-
-    async def live_on(self, msg):
-        self.live_flag = True
-        VDB.set_db(self.room_display_id)
-        self.start_time = get_live_start_time(msg)
-        await VDB().insert(WsMessage(msg))
-
-    def live_off(self, msg):
         self.live_flag = False
         self.end_time = int(datetime.now().timestamp())
-        VDB().update(WsMessage({**msg, '_id': self.start_time}))
-        room_info = get_room_info(self.room_display_id)
-        self.title = room_info['room_info']['title']        
+        VDB().update(WsMessage(msg|dict(_id=self.start_time)))
+        room_info = await asyncio.to_thread(get_room_info, self.room_display_id)
+        self.title = room_info['room_info']['title']
         try:
-            ASFigure(self).paint()
+            await asyncio.to_thread(ASFigure(self).paint)
         except Exception as e:
-            print(e)
+            print('[ERROR]', e)
         self.reset_time()
         VDB.remove_db(self.room_display_id)
 

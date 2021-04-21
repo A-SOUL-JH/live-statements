@@ -1,6 +1,5 @@
 from datetime import datetime
 from collections import namedtuple
-from vdb import VDB
 from utils import get_live_start_time
 
 Message = namedtuple('Message', [
@@ -131,15 +130,8 @@ class WsMessage():
         print('_process_preparing...')
         print(msg)
         data = msg['data']
-        #VDB.get_db(rid)['live_info'].find_one_and_update({'finished': False, 'roomid': self.rid, '_id': {'$type': 16}}
-        #                , {'$set':{'finished': True, 'end_time': int(datetime.now().timestamp()),}}, sort=[('_id', -1)])
         return ['live_info', {'finished': True, 'end_time': int(datetime.now().timestamp()),}, {'finished': False, '_id': msg['_id']}]
 
     def get_message_type(self):
         return self.msg_type
-
-    async def save_to_db(self, rid):
-        if not self.data:
-            return
-        await VDB().insert(rid, self.data)
     

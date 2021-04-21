@@ -14,7 +14,7 @@ class VDB():
             client[to][collection].insert_many(db[collection].find({},{'_id':0}))
 
     @classmethod
-    def set_db(cls, rid):
+    def add_db(cls, rid):
         VDB.living_dbs[rid] = VDB.client[str(rid)]
 
     @classmethod
@@ -42,6 +42,5 @@ class VDB():
         res = collection.update(cond[0] if cond else dict(), {'$set': data})
         print('[update]', res)
 
-    @classmethod
     def find(self, rid, cname, *args):
-        return VDB.get_db(rid)[cname].find(*args)
+        return VDB.client[str(rid)][cname].find(*args)

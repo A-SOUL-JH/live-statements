@@ -12,34 +12,14 @@ import requests
 
 
 class LiveMonitor():
-    def __init__(self, rids):
+    def __init__(self, rids=LISTEN_ROOMS, events=DEFAULT_LISTEN_EVENTS):
         self.rooms = [LiveDanmu(rid) for rid in rids]
         self.tasks = []
         for room in self.rooms:
             room.add_event_handler('LIVE', room.start_record)
             room.add_event_handler('PREPARING', room.stop_record)
-            for event_name in DEFAULT_LISTEN_EVENTS:
+            for event_name in events:
                 room.add_event_handler(event_name, room.record)
-
-    def record(self, room):
-        """普通直播事件处理程序"""
-        async def process(msg):
-            await VDB().insert(WsMessage(msg))
-        return process
-
-    def start_record(self, room):
-        """直播开始事件处理程序"""
-        async def register(msg):
-            if not room.live_flag:
-                await room.live_on(msg)
-        return register
-
-    def stop_record(self, room):
-        """直播结束事件处理程序"""
-        def close(msg):
-            room.live_off(msg)
-            room.reset_time()            
-        return close
 
     def __init_room(self, room):
         data = get_room_info(room.room_display_id)
@@ -49,7 +29,7 @@ class LiveMonitor():
             live_key = rinfo['up_session']
             rid = rinfo['short_id'] if rinfo['short_id'] else rinfo['room_id']
             msg = gen_msg(rid, 'LIVE', **dict(start_time=start_time, live_key=live_key, full=False))
-            asyncio.create_task(room.live_on(msg))
+            asyncio.create_task(room.start_record(msg))
 
     async def run(self):
         for room in self.rooms:
@@ -79,5 +59,5 @@ class LiveMonitor():
 
 
 if __name__ == "__main__":
-    monitor = LiveMonitor(LISTEN_ROOMS+[510])
+    monitor = LiveMonitor(LISTEN_ROOMS+[510, 6562109, 4138602])
     asyncio.run(monitor.run())

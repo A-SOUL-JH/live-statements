@@ -35,7 +35,7 @@ class ASFigure():
 
         for cname in VDB.get_db(self.rid).list_collection_names():
             args = find_args(cname == 'danmu')
-            d = VDB.find(self.rid, cname, *args)
+            d = VDB().find(self.rid, cname, *args)
             if d.count():
                 self.data[cname] = pd.DataFrame(d)
 
